@@ -1,0 +1,228 @@
+diff --git a/Bugzilla/Bug.pm b/Bugzilla/Bug.pm
+index bfc9ccb23..37527da7a 100644
+--- a/Bugzilla/Bug.pm
++++ b/Bugzilla/Bug.pm
+@@ -3984,7 +3984,7 @@ sub groups {
+       . " THEN 1 ELSE 0 END,"
+       . " CASE WHEN groups.id IN($grouplist) THEN 1 ELSE 0 END,"
+       . " isactive, membercontrol, othercontrol"
+-      . " FROM groups"
++      . " FROM `groups`"
+       . " LEFT JOIN bug_group_map"
+       . " ON bug_group_map.group_id = groups.id"
+       . " AND bug_id = ?"
+diff --git a/Bugzilla/Group.pm b/Bugzilla/Group.pm
+index 3763e74fc..01d32b1a4 100644
+--- a/Bugzilla/Group.pm
++++ b/Bugzilla/Group.pm
+@@ -34,7 +34,7 @@ use constant DB_COLUMNS => qw(
+   groups.icon_url
+ );
+ 
+-use constant DB_TABLE => 'groups';
++use constant DB_TABLE => '`groups`';
+ 
+ use constant LIST_ORDER => 'isbuggroup, name';
+ 
+@@ -440,7 +440,7 @@ sub create {
+ sub ValidateGroupName {
+   my ($name, @users) = (@_);
+   my $dbh   = Bugzilla->dbh;
+-  my $query = "SELECT id FROM groups " . "WHERE name = ?";
++  my $query = "SELECT id FROM `groups` " . "WHERE name = ?";
+   if (Bugzilla->params->{'usevisibilitygroups'}) {
+     my @visible = (-1);
+     foreach my $user (@users) {
+diff --git a/Bugzilla/Install/DB.pm b/Bugzilla/Install/DB.pm
+index 01b30b3bf..78a6dc9a9 100644
+--- a/Bugzilla/Install/DB.pm
++++ b/Bugzilla/Install/DB.pm
+@@ -1651,7 +1651,7 @@ sub _convert_groups_system_from_groupset {
+ 
+     # Convert all existing groupset records to map entries before removing
+     # groupset fields or removing "bit" from groups.
+-    my $sth = $dbh->prepare("SELECT bit, id FROM groups WHERE bit > 0");
++    my $sth = $dbh->prepare("SELECT bit, id FROM `groups` WHERE bit > 0");
+     $sth->execute();
+     while (my ($bit, $gid) = $sth->fetchrow_array) {
+ 
+@@ -1746,7 +1746,7 @@ sub _convert_groups_system_from_groupset {
+ 
+         # Get names of groups added.
+         my $sth2 = $dbh->prepare(
+-          "SELECT name FROM groups
++          "SELECT name FROM `groups`
+                                            WHERE (bit & $added) != 0
+                                                  AND (bit & $removed) = 0"
+         );
+@@ -1758,7 +1758,7 @@ sub _convert_groups_system_from_groupset {
+ 
+         # Get names of groups removed.
+         $sth2 = $dbh->prepare(
+-          "SELECT name FROM groups
++          "SELECT name FROM `groups`
+                                         WHERE (bit & $removed) != 0
+                                               AND (bit & $added) = 0"
+         );
+@@ -1823,7 +1823,7 @@ sub _convert_groups_system_from_groupset {
+ 
+         # Get names of groups added.
+         my $sth2 = $dbh->prepare(
+-          "SELECT name FROM groups
++          "SELECT name FROM `groups`
+                                            WHERE (bit & $added) != 0
+                                                  AND (bit & $removed) = 0"
+         );
+@@ -1835,7 +1835,7 @@ sub _convert_groups_system_from_groupset {
+ 
+         # Get names of groups removed.
+         $sth2 = $dbh->prepare(
+-          "SELECT name FROM groups
++          "SELECT name FROM `groups`
+                                         WHERE (bit & $removed) != 0
+                                               AND (bit & $added) = 0"
+         );
+@@ -1864,9 +1864,9 @@ sub _convert_groups_system_from_groupset {
+ 
+     # Identify admin group.
+     my ($admin_gid)
+-      = $dbh->selectrow_array("SELECT id FROM groups WHERE name = 'admin'");
++      = $dbh->selectrow_array("SELECT id FROM `groups` WHERE name = 'admin'");
+     if (!$admin_gid) {
+-      $dbh->do(q{INSERT INTO groups (name, description)
++      $dbh->do(q{INSERT INTO `groups` (name, description)
+                                    VALUES ('admin', 'Administrators')}
+       );
+       $admin_gid = $dbh->bz_last_key('groups', 'id');
+@@ -2134,7 +2134,7 @@ sub _setup_usebuggroups_backward_compatibility {
+     my $sth = $dbh->prepare(
+       "SELECT groups.id, products.id, groups.name,
+                                         products.name 
+-                                  FROM groups, products
++                                  FROM `groups`, products
+                                  WHERE isbuggroup != 0"
+     );
+     $sth->execute();
+@@ -2495,7 +2495,7 @@ sub _fix_group_with_empty_name {
+   # Note that there can be at most one such group (because of
+   # the SQL index on the name column).
+   my ($emptygroupid)
+-    = $dbh->selectrow_array("SELECT id FROM groups where name = ''");
++    = $dbh->selectrow_array("SELECT id FROM `groups` where name = ''");
+   if ($emptygroupid) {
+ 
+     # There is a group with an empty name; find a name to rename it
+@@ -2503,7 +2503,7 @@ sub _fix_group_with_empty_name {
+     # group_$gid and add _<n> if necessary.
+     my $trycount = 0;
+     my $trygroupname;
+-    my $sth         = $dbh->prepare("SELECT 1 FROM groups where name = ?");
++    my $sth         = $dbh->prepare("SELECT 1 FROM `groups` where name = ?");
+     my $name_exists = 1;
+ 
+     while ($name_exists) {
+@@ -2948,7 +2948,7 @@ sub _rederive_regex_groups {
+   my $dbh = Bugzilla->dbh;
+ 
+   my $regex_groups_exist = $dbh->selectrow_array(
+-    "SELECT 1 FROM groups WHERE userregexp = '' " . $dbh->sql_limit(1));
++    "SELECT 1 FROM `groups` WHERE userregexp = '' " . $dbh->sql_limit(1));
+   return if !$regex_groups_exist;
+ 
+   my $regex_derivations
+@@ -2963,7 +2963,7 @@ sub _rederive_regex_groups {
+   my $sth = $dbh->prepare(
+     "SELECT profiles.userid, profiles.login_name, groups.id, 
+                 groups.userregexp, user_group_map.group_id
+-           FROM (profiles CROSS JOIN groups)
++           FROM (profiles CROSS JOIN `groups`)
+                 LEFT JOIN user_group_map
+                        ON user_group_map.user_id = profiles.userid
+                           AND user_group_map.group_id = groups.id
+diff --git a/Bugzilla/User.pm b/Bugzilla/User.pm
+index ee765a014..fdf40a20c 100644
+--- a/Bugzilla/User.pm
++++ b/Bugzilla/User.pm
+@@ -1630,7 +1630,7 @@ sub visible_groups_direct {
+   }
+   else {
+     # All groups are visible if usevisibilitygroups is off.
+-    $sth = $dbh->prepare('SELECT id FROM groups');
++    $sth = $dbh->prepare('SELECT id FROM `groups`');
+   }
+   $sth->execute();
+ 
+diff --git a/editgroups.cgi b/editgroups.cgi
+index b93254ebc..046b771e0 100755
+--- a/editgroups.cgi
++++ b/editgroups.cgi
+@@ -48,7 +48,7 @@ sub CheckGroupID {
+   ThrowUserError("group_not_specified") unless $group_id;
+   (
+     detaint_natural($group_id) && Bugzilla->dbh->selectrow_array(
+-      "SELECT id FROM groups WHERE id = ?",
++      "SELECT id FROM `groups` WHERE id = ?",
+       undef, $group_id
+     )
+   ) || ThrowUserError("invalid_group_ID");
+diff --git a/editproducts.cgi b/editproducts.cgi
+index f98225e6f..b45784771 100755
+--- a/editproducts.cgi
++++ b/editproducts.cgi
+@@ -368,7 +368,7 @@ if ($action eq 'updategroupcontrols') {
+                        FROM bugs
+                  INNER JOIN bug_group_map
+                          ON bug_group_map.bug_id = bugs.bug_id
+-                 INNER JOIN groups
++                 INNER JOIN `groups`
+                          ON bug_group_map.group_id = groups.id
+                       WHERE groups.id IN (' . join(', ', @now_na) . ')
+                         AND bugs.product_id = ? ' . $dbh->sql_group_by('groups.name'),
+@@ -390,7 +390,7 @@ if ($action eq 'updategroupcontrols') {
+                                 (SELECT bug_group_map.bug_id FROM bug_group_map
+                                   WHERE bug_group_map.group_id = groups.id))
+                            AS count
+-                      FROM groups
++                      FROM `groups`
+                      WHERE groups.id IN (' . join(', ', @now_mandatory) . ')
+                      ORDER BY groups.name', {'Slice' => {}}, $product->id
+       );
+diff --git a/editusers.cgi b/editusers.cgi
+index 4db7e4441..544fed91b 100755
+--- a/editusers.cgi
++++ b/editusers.cgi
+@@ -743,7 +743,7 @@ sub userDataToVars {
+ 
+   # Find indirect bless permission.
+   $query = qq{SELECT groups.id
+-                FROM groups, group_group_map AS ggm
++                FROM `groups`, group_group_map AS ggm
+                 WHERE groups.id = ggm.grantor_id
+                   AND ggm.member_id IN ($grouplist)
+                   AND ggm.grant_type = ?
+diff --git a/userprefs.cgi b/userprefs.cgi
+index 4c2ad1f15..476c23f81 100755
+--- a/userprefs.cgi
++++ b/userprefs.cgi
+@@ -391,7 +391,7 @@ sub DoPermissions {
+ 
+   my $groups
+     = $dbh->selectall_arrayref(
+-        "SELECT DISTINCT name, description FROM groups WHERE id IN ("
++        "SELECT DISTINCT name, description FROM `groups` WHERE id IN ("
+       . $user->groups_as_string
+       . ") ORDER BY name");
+   foreach my $group (@$groups) {
+diff --git a/whine.pl b/whine.pl
+index 691df886f..53f177284 100755
+--- a/whine.pl
++++ b/whine.pl
+@@ -250,7 +250,7 @@ sub get_next_event {
+           }
+         }
+         elsif ($mailto_type == MAILTO_GROUP) {
+-          my $sth = $dbh->prepare("SELECT name FROM groups " . "WHERE id=?");
++          my $sth = $dbh->prepare("SELECT name FROM `groups` " . "WHERE id=?");
+           $sth->execute($mailto);
+           my $groupname = $sth->fetch->[0];
+           my $group_id  = Bugzilla::Group::ValidateGroupName($groupname, $owner);
