@@ -1651,7 +1651,7 @@ sub _convert_groups_system_from_groupset {
 
     # Convert all existing groupset records to map entries before removing
     # groupset fields or removing "bit" from groups.
-    my $sth = $dbh->prepare("SELECT bit, id FROM groups WHERE bit > 0");
+    my $sth = $dbh->prepare("SELECT bit, id FROM `groups` WHERE bit > 0");
     $sth->execute();
     while (my ($bit, $gid) = $sth->fetchrow_array) {
 
@@ -1746,7 +1746,7 @@ sub _convert_groups_system_from_groupset {
 
         # Get names of groups added.
         my $sth2 = $dbh->prepare(
-          "SELECT name FROM groups
+          "SELECT name FROM `groups`
                                            WHERE (bit & $added) != 0
                                                  AND (bit & $removed) = 0"
         );
@@ -1758,7 +1758,7 @@ sub _convert_groups_system_from_groupset {
 
         # Get names of groups removed.
         $sth2 = $dbh->prepare(
-          "SELECT name FROM groups
+          "SELECT name FROM `groups`
                                         WHERE (bit & $removed) != 0
                                               AND (bit & $added) = 0"
         );
@@ -1823,7 +1823,7 @@ sub _convert_groups_system_from_groupset {
 
         # Get names of groups added.
         my $sth2 = $dbh->prepare(
-          "SELECT name FROM groups
+          "SELECT name FROM `groups`
                                            WHERE (bit & $added) != 0
                                                  AND (bit & $removed) = 0"
         );
@@ -1835,7 +1835,7 @@ sub _convert_groups_system_from_groupset {
 
         # Get names of groups removed.
         $sth2 = $dbh->prepare(
-          "SELECT name FROM groups
+          "SELECT name FROM `groups`
                                         WHERE (bit & $removed) != 0
                                               AND (bit & $added) = 0"
         );
@@ -1864,9 +1864,9 @@ sub _convert_groups_system_from_groupset {
 
     # Identify admin group.
     my ($admin_gid)
-      = $dbh->selectrow_array("SELECT id FROM groups WHERE name = 'admin'");
+      = $dbh->selectrow_array("SELECT id FROM `groups` WHERE name = 'admin'");
     if (!$admin_gid) {
-      $dbh->do(q{INSERT INTO groups (name, description)
+      $dbh->do(q{INSERT INTO `groups` (name, description)
                                    VALUES ('admin', 'Administrators')}
       );
       $admin_gid = $dbh->bz_last_key('groups', 'id');
@@ -2134,7 +2134,7 @@ sub _setup_usebuggroups_backward_compatibility {
     my $sth = $dbh->prepare(
       "SELECT groups.id, products.id, groups.name,
                                         products.name 
-                                  FROM groups, products
+                                  FROM `groups`, products
                                  WHERE isbuggroup != 0"
     );
     $sth->execute();
@@ -2495,7 +2495,7 @@ sub _fix_group_with_empty_name {
   # Note that there can be at most one such group (because of
   # the SQL index on the name column).
   my ($emptygroupid)
-    = $dbh->selectrow_array("SELECT id FROM groups where name = ''");
+    = $dbh->selectrow_array("SELECT id FROM `groups` where name = ''");
   if ($emptygroupid) {
 
     # There is a group with an empty name; find a name to rename it
@@ -2503,7 +2503,7 @@ sub _fix_group_with_empty_name {
     # group_$gid and add _<n> if necessary.
     my $trycount = 0;
     my $trygroupname;
-    my $sth         = $dbh->prepare("SELECT 1 FROM groups where name = ?");
+    my $sth         = $dbh->prepare("SELECT 1 FROM `groups` where name = ?");
     my $name_exists = 1;
 
     while ($name_exists) {
@@ -2948,7 +2948,7 @@ sub _rederive_regex_groups {
   my $dbh = Bugzilla->dbh;
 
   my $regex_groups_exist = $dbh->selectrow_array(
-    "SELECT 1 FROM groups WHERE userregexp = '' " . $dbh->sql_limit(1));
+    "SELECT 1 FROM `groups` WHERE userregexp = '' " . $dbh->sql_limit(1));
   return if !$regex_groups_exist;
 
   my $regex_derivations
@@ -2963,7 +2963,7 @@ sub _rederive_regex_groups {
   my $sth = $dbh->prepare(
     "SELECT profiles.userid, profiles.login_name, groups.id, 
                 groups.userregexp, user_group_map.group_id
-           FROM (profiles CROSS JOIN groups)
+           FROM (profiles CROSS JOIN `groups`)
                 LEFT JOIN user_group_map
                        ON user_group_map.user_id = profiles.userid
                           AND user_group_map.group_id = groups.id

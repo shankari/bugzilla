@@ -1630,7 +1630,7 @@ sub visible_groups_direct {
   }
   else {
     # All groups are visible if usevisibilitygroups is off.
-    $sth = $dbh->prepare('SELECT id FROM groups');
+    $sth = $dbh->prepare('SELECT id FROM `groups`');
   }
   $sth->execute();
 
