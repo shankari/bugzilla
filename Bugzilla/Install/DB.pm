@@ -384,7 +384,9 @@ sub update_table_definitions {
 
   _migrate_email_prefs_to_new_table();
   _initialize_new_email_prefs();
-  _change_all_mysql_booleans_to_tinyint();
+  # commented out since they are all tinyint and this is giving an error
+  # Shankari, Nov 2023
+  # _change_all_mysql_booleans_to_tinyint();
 
   # make classification_id field type be consistent with DB:Schema
   $dbh->bz_alter_column('products', 'classification_id',
