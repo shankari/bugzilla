@@ -643,7 +643,7 @@ sub has_flags {
 
 sub local_timezone {
   return $_[0]->process_cache->{local_timezone}
-    ||= DateTime::TimeZone->new(name => 'local');
+    ||= DateTime::TimeZone->new(name => 'America/Los_Angeles');
 }
 
 # This creates the request cache for non-mod_perl installations.
